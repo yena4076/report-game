@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f5ef"><title>작업실 — 키보드로 쉬어가는 시간</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main id="home">
+ <header class="brand"><span class="brand-icon">▤</span> 작업실 <span class="edition">OFFICE PLAYGROUND</span></header>
+ <section class="intro"><div class="eyebrow">작은 몰입, 가벼운 시작</div><h1>오늘은 어떤 일을<br>하는 기분일까요<span>?</span></h1><p>익숙한 화면에서, 부담 없이 타닥타닥.<br>프로그램과 모드를 고르면 바로 시작해요.</p><div class="intro-note"><span class="dot"></span> 가입 없이 · 저장 없이 · 오직 타이핑</div></section>
+ <section class="programs" aria-label="프로그램 선택"><div class="section-title"><h2>프로그램 고르기</h2><span>01 / 05 사용 가능</span></div><div id="program-grid" class="grid"></div></section>
+ <p class="play-help">따라쓰기 안내 숨김/표시 <kbd>Alt</kbd> + <kbd>Q</kbd>　·　나가기 <kbd>오른쪽 위 ×</kbd><br><small>메뉴와 서식 도구는 장식입니다. 닫으면 작성 내용이 초기화돼요.</small></p>
+ <footer>나만의 조용한 작업 시간.<span>실제 프로그램과 무관한 자체 제작 타이핑 게임입니다.</span></footer>
+</main>
+<section id="editor" hidden aria-label="한글 스타일 문서 편집기">
+ <div class="titlebar"><span class="document-icon">▤</span><span id="filename"></span><span class="appname">작업실 문서</span><button id="close" aria-label="닫고 메인화면으로 돌아가기" title="닫기 · 내용 초기화">×</button></div>
+ <div class="decoration" aria-hidden="true"><div class="menubar"><span>파일(F)</span><span>편집(E)</span><span>보기(V)</span><span>입력(I)</span><span>서식(O)</span><span>쪽(P)</span><span>도구(T)</span><span>표(A)</span><span>도움말(H)</span></div><div class="toolbar"><span>▧</span><span>▱</span><span>▣</span><i></i><span>↶</span><span>↷</span><i></i><span class="select">바탕글 ⌄</span><span class="select font">함초롬바탕 ⌄</span><span class="select">11 pt ⌄</span><i></i><b>가</b><u>가</u><span>≡</span><span>☷</span></div></div>
+ <div class="workspace" id="workspace"><div class="ruler" aria-hidden="true">1　　　 2　　　 3　　　 4　　　 5　　　 6　　　 7　　　 8　　　 9　　　 10　　　 11　　　 12</div><div class="paper"><div class="corner top-left"></div><div class="corner top-right"></div><div class="writing-area"><div id="ghost" aria-hidden="true"><span id="ghost-prefix"></span><span id="ghost-rest"></span></div><textarea id="input" aria-label="보고서 입력" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="soft"></textarea></div><div class="page-number" aria-hidden="true">— 1 —</div></div></div>
+ <div class="statusbar"><span id="report-status"></span><span id="count">0자</span><span>삽입</span><span>한글</span><span class="zoom">100% ───●── ＋</span></div>
+</section>
+<script src="app.js"></script>
+</body></html>
