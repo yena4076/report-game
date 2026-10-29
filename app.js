@@ -15,44 +15,25 @@ const REPORTS = [
 ];
 const $ = id => document.getElementById(id);
 const home=$('home'), editor=$('editor'), input=$('input'), ghost=$('ghost');
-// The browser owns the editable DOM, including IME, undo and selection.
-// Ranges decorate that same text; there is no mirror or transparent input.
-Object.defineProperty(input,'value',{
- get(){return input.textContent.replace(/\r\n?/g,'\n')},
- set(value){if(input.textContent!==value)input.textContent=value}
-});
-input.setSelectionRange=(start,end)=>{
- const walker=document.createTreeWalker(input,NodeFilter.SHOW_TEXT);
- let node,offset=0,first,last;
- while((node=walker.nextNode())){
-  const next=offset+node.length;
-  if(!first&&start<=next)first=[node,Math.max(0,start-offset)];
-  if(end<=next){last=[node,Math.max(0,end-offset)];break}offset=next;
- }
- const range=document.createRange();
- if(first&&last){range.setStart(...first);range.setEnd(...last)}
- else{range.selectNodeContents(input);range.collapse(false)}
- const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
-};
+// A separate mirror decorates native textarea text without touching its value or selection.
+const mistakes=document.createElement('div');
+mistakes.id='mistakes';mistakes.setAttribute('aria-hidden','true');
+input.before(mistakes);
 let completionTimer;
 function renderCopy(){
  const expected=Array.from(currentReport().text),actual=Array.from(input.value);
- $('ghost-prefix').textContent='';
+ // Only the original text participates in hint layout, even for narrow letters/newlines.
+ $('ghost-prefix').textContent=expected.slice(0,actual.length).join('');
  $('ghost-rest').textContent=expected.slice(actual.length).join('');
- if(!CSS.highlights)return;
- const ranges=[],walker=document.createTreeWalker(input,NodeFilter.SHOW_TEXT);
- let node,index=0;
- while((node=walker.nextNode())){
-  let offset=0;
-  for(const character of node.data){
-   if(!composing&&character!==expected[index]){
-    const range=document.createRange();range.setStart(node,offset);
-    range.setEnd(node,offset+character.length);ranges.push(range);
-   }
-   index++;offset+=character.length;
-  }
- }
- CSS.highlights.set('typos',new Highlight(...ranges));
+ const fragment=document.createDocumentFragment();
+ actual.forEach((character,index)=>{
+  const span=document.createElement('span');span.textContent=character;
+  if(character!==expected[index]&&!composing)span.className='typo';
+  fragment.append(span);
+ });
+ // Preserve the final empty line in the mirror, matching textarea layout.
+ fragment.append(document.createTextNode('\u200b'));
+ mistakes.replaceChildren(fragment);
 }
 let mode=null, reportIndex=0, guideVisible=true, composing=false, autoText='', physicalAutoKey=false;
 for(const p of PROGRAMS){
@@ -70,10 +51,10 @@ function render(){
  const report=currentReport();$('filename').textContent=report.title+'.hwp';
  $('report-status').textContent=`${mode==='copy'?'따라쓰기':'자동 작성'} · 보고서 ${reportIndex+1}`;
  $('count').textContent=Array.from(input.value).length+'자';
- if(mode!=='copy'&&CSS.highlights)CSS.highlights.delete('typos');
+ mistakes.hidden=mode!=='copy';
  if(mode==='copy')renderCopy();
- else{$('ghost-prefix').textContent='';$('ghost-rest').textContent='\u200b'}
-
+ else{$('ghost-prefix').textContent=input.value;$('ghost-rest').textContent='\u200b'}
+ input.style.height='auto';input.style.height=Math.max(930,input.scrollHeight,ghost.scrollHeight)+'px';
 }
 function checkCopy(){if(mode==='copy'&&!composing&&input.value===currentReport().text){reportIndex++;input.value='';$('workspace').scrollTop=0}render()}
 input.addEventListener('compositionstart',()=>{clearTimeout(completionTimer);composing=true;if(mode==='copy')render()});
@@ -103,7 +84,3 @@ input.addEventListener('beforeinput',event=>{if(mode!=='auto')return;event.preve
 input.addEventListener('paste',event=>{if(mode==='auto')event.preventDefault()});
 window.addEventListener('resize',()=>{if(mode)render()});
 
-
-document.querySelector('.writing-area').addEventListener('click',event=>{
- if(!input.contains(event.target)){input.focus();input.setSelectionRange(input.value.length,input.value.length)}
-});
