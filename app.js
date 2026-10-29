@@ -15,6 +15,26 @@ const REPORTS = [
 ];
 const $ = id => document.getElementById(id);
 const home=$('home'), editor=$('editor'), input=$('input'), ghost=$('ghost');
+// A separate mirror decorates native textarea text without touching its value or selection.
+const mistakes=document.createElement('div');
+mistakes.id='mistakes';mistakes.setAttribute('aria-hidden','true');
+input.before(mistakes);
+let completionTimer;
+function renderCopy(){
+ const expected=Array.from(currentReport().text),actual=Array.from(input.value);
+ // Only the original text participates in hint layout, even for narrow letters/newlines.
+ $('ghost-prefix').textContent=expected.slice(0,actual.length).join('');
+ $('ghost-rest').textContent=expected.slice(actual.length).join('');
+ const fragment=document.createDocumentFragment();
+ actual.forEach((character,index)=>{
+  const span=document.createElement('span');span.textContent=character;
+  if(character!==expected[index]&&!composing)span.className='typo';
+  fragment.append(span);
+ });
+ // Preserve the final empty line in the mirror, matching textarea layout.
+ fragment.append(document.createTextNode('\u200b'));
+ mistakes.replaceChildren(fragment);
+}
 let mode=null, reportIndex=0, guideVisible=true, composing=false, autoText='', physicalAutoKey=false;
 for(const p of PROGRAMS){
  const card=document.createElement('article');card.className='card '+(p.modes?'active':'soon');
@@ -31,14 +51,17 @@ function render(){
  const report=currentReport();$('filename').textContent=report.title+'.hwp';
  $('report-status').textContent=`${mode==='copy'?'따라쓰기':'자동 작성'} · 보고서 ${reportIndex+1}`;
  $('count').textContent=Array.from(input.value).length+'자';
- $('ghost-prefix').textContent=input.value;
- $('ghost-rest').textContent=mode==='copy'?Array.from(report.text).slice(Array.from(input.value).length).join(''):'\u200b';
+ mistakes.hidden=mode!=='copy';
+ if(mode==='copy')renderCopy();
+ else{$('ghost-prefix').textContent=input.value;$('ghost-rest').textContent='\u200b'}
  input.style.height='auto';input.style.height=Math.max(930,input.scrollHeight,ghost.scrollHeight)+'px';
 }
 function checkCopy(){if(mode==='copy'&&!composing&&input.value===currentReport().text){reportIndex++;input.value='';$('workspace').scrollTop=0}render()}
-input.addEventListener('compositionstart',()=>{composing=true});
-input.addEventListener('compositionend',()=>{composing=false;if(mode==='copy')checkCopy();else if(mode==='auto'){input.value=autoText;render()}});
-input.addEventListener('input',()=>{if(mode==='copy')checkCopy();else if(mode==='auto'){input.value=autoText;render()}});
+input.addEventListener('compositionstart',()=>{clearTimeout(completionTimer);composing=true;if(mode==='copy')render()});
+// Some browsers send the final input after compositionend. Wait until both settle
+// before clearing a completed report, so that final input cannot leak into the next one.
+input.addEventListener('compositionend',()=>{composing=false;if(mode==='copy'){render();clearTimeout(completionTimer);completionTimer=setTimeout(()=>{if(mode==='copy'&&!composing)checkCopy()},0)}else if(mode==='auto'){input.value=autoText;render()}});
+input.addEventListener('input',event=>{if(mode==='copy'){render();clearTimeout(completionTimer);if(!composing&&!event.isComposing)completionTimer=setTimeout(()=>{if(mode==='copy'&&!composing)checkCopy()},0)}else if(mode==='auto'){input.value=autoText;render()}});
 function nextAutoCharacter(){
  let full=REPORTS.map(r=>r.text).join('\n\n');
  const cycle=full+'\n\n';
@@ -60,3 +83,4 @@ input.addEventListener('blur',()=>{physicalAutoKey=false});
 input.addEventListener('beforeinput',event=>{if(mode!=='auto')return;event.preventDefault();if(physicalAutoKey)return;if(event.inputType==='deleteContentBackward'){autoText=Array.from(autoText).slice(0,-1).join('');syncAuto()}else if(event.inputType==='insertText'||event.inputType==='insertCompositionText')nextAutoCharacter()});
 input.addEventListener('paste',event=>{if(mode==='auto')event.preventDefault()});
 window.addEventListener('resize',()=>{if(mode)render()});
+
